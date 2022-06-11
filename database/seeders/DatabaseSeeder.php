@@ -37,13 +37,16 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('Admin@123')
         ]);
 
+
+        Company::factory()->count(10)->create();
+
         Customer::factory()->count(100)->create()->each(function ($customer) {
             $customer->update([
-                'company_id' => Company::factory()->create()->id,
+                'company_id' => Company::inRandomOrder()->first()->id,
                 'sales_rep_id' => random_int(2,3),
             ]);
 
-            $customer->interactions()->saveMany(Interaction::factory()->count(500)->make());
+            $customer->interactions()->saveMany(Interaction::factory()->count(50)->make());
         });
         
     }

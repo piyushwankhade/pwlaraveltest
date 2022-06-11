@@ -13,9 +13,22 @@ class Customer extends Model
 {
     use HasFactory;
 
-    protected $casts = [
-        'birth_date' => 'date',
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'first_name',
+        'last_name',
+        'birth_date',
+        'sales_rep_id',
+        'company_id'
     ];
+
+    // protected $casts = [
+    //     'birth_date' => 'date',
+    // ];
 
     public function company()
     {
@@ -26,11 +39,7 @@ class Customer extends Model
     {
         return $this->hasMany(Interaction::class);
     }
-
-    public function scopeOrderByName($query)
-    {
-        $query->orderBy('last_name')->orderBy('first_name');
-    }
+    
 
     public function lastInteraction()
     {
@@ -81,5 +90,47 @@ class Customer extends Model
         $query->whereNotNull('birth_date');
         
         return $query->whereIn(DB::raw("DATE_FORMAT(birth_date, '%m-%d')"), $dates);
+    }
+
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->is_admin) {
+            return $query;
+        }
+
+        return $query->where('sales_rep_id', $user->id);
+    }
+
+    public function scopeOrderByField($query, $field)
+    {
+        if ($field['order'] === 'name') {
+            $query->orderByName($field['dir']);
+        } elseif ($field['order'] === 'company') {            
+            $query->orderByCompany($field['dir']);
+        } elseif ($field['order'] === 'birthday') {
+            $query->orderByBirthday($field['dir']);
+        } elseif ($field['order'] === 'last_interaction') {
+            $query->orderByLastInteractionDate($field['dir']);
+        }
+    }
+
+    public function scopeOrderByName($query,$dir)
+    {
+        $query->orderBy('last_name',$dir)->orderBy('first_name',$dir);
+    }
+
+    public function scopeOrderByCompany($query,$dir)
+    {
+        $query->orderBySub(Company::select('name')->whereRaw('customers.company_id = companies.id'),$dir);
+    }
+
+    public function scopeOrderByBirthday($query,$dir)
+    {
+        $query->orderbyRaw("DATE_FORMAT(birth_date, '%m-%d') {$dir}");
+    }
+
+    public function scopeOrderByLastInteractionDate($query,$dir)
+    {
+        $query->orderBySub(Interaction::select('created_at')->whereRaw('customers.id = interactions.customer_id')->latest(),$dir);
     }
 }

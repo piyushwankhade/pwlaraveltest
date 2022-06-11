@@ -13,7 +13,7 @@
                 <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                     <div class="p-6 bg-white border-b border-gray-200">
                         <div class="mb-4 flex justify-between">
-                            <Link class="px-6 py-2 mb-2 text-green-100 bg-green-500 rounded" :href="route('customers.create')">Create customer</Link>
+                            <Link class="px-6 py-2 mb-2 text-green-100 bg-green-500 rounded" :href="route('customers.create')">Create Customer</Link>
 
                             <select name="filterTerm" @change="filterMethod" v-model="filterTerm">
 														  <option value="">Select ...</option>
@@ -31,10 +31,10 @@
                             <table class="min-w-full divide-y divide-gray-200">
                               <thead class="bg-gray-50">
                                 <tr>
-                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Birth Date</th>
-                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Interaction</th>
+                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" @click="changeOrder('name')">Name</th>
+                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" @click="changeOrder('company')">Company</th>
+                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" @click="changeOrder('birthday')">Birth Date</th>
+                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" @click="changeOrder('last_interaction')">Last Interaction</th>
                                   <th scope="col" class="relative px-6 py-3">
                                     <span class="sr-only">Edit</span>
                                   </th>
@@ -103,6 +103,8 @@ export default {
     customers: Object,
     search : String,
     filter : String,
+    order : String,
+    dir : String,
   },
   components: {
       BreezeAuthenticatedLayout,
@@ -114,20 +116,33 @@ export default {
     return {
       searchTerm : this.search,
       filterTerm : this.filter,
+      orderTerm : this.order,
+      dirTerm : this.dir,
     };
   },
   methods: {
+    getCustomers :  function() {
+      Inertia.get('customers',{ 
+        search : this.searchTerm, 
+        filter : this.filterTerm,
+        order : this.orderTerm,
+        dir : this.dirTerm, 
+      },{
+          preserveScroll : true,
+          preserveState : true,
+          replace : true,
+      });
+    },
+    changeOrder : function (val) {
+      this.orderTerm = val;
+      this.dirTerm = this.dirTerm === 'asc' ? 'desc' : 'asc';
+      this.getCustomers();
+    },
   	filterMethod : function() {
-  		Inertia.get('customers',{ search : this.searchTerm, filter : this.filterTerm },{
-	        preserveState : true,
-	        replace : true,
-	    });
+  		this.getCustomers();
   	},
     searchMethod : _.debounce (function() {
-    	Inertia.get('customers',{ search : this.searchTerm, filter : this.filterTerm },{
-	        preserveState : true,
-	        replace : true,
-	    });
+    	this.getCustomers();
     },500)
   },
 };

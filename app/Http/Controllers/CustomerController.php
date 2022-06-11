@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
 use App\Models\Customer;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,30 +21,35 @@ class CustomerController extends Controller
 
         $query = Customer::query();
 
-        $query->whereFilters($request->only(['search', 'filter']));
-
-        //$query->whereSearch($request->get('search'));
-
+        $query->with('company');
+        
         $query->withLastInteraction();
 
-        $customers = $query->paginate(10)->withQueryString()->through(fn($customer) => [
+        $query->whereFilters($request->only(['search', 'filter']));
+
+        if ($request->order && $request->dir) {
+            $query->orderByField($request->only(['order','dir']));            
+        }
+
+        $query->visibleTo(auth()->user()); 
+
+        $customers = $query->latest()->paginate(10)->withQueryString()->through(fn($customer) => [
             'id' => $customer->id,
             'first_name' => $customer->first_name,
             'last_name' => $customer->last_name,            
             'photo' => 'https://ui-avatars.com/api/?name='.$customer->first_name.' '.$customer->last_name,
             'company' => $customer->company->name,
-            'birth_date' => Carbon::parse($customer->birth_date)->format('d-m-Y'),
-            'last_interaction_date' => $customer->lastInteraction->created_at->diffForHumans(),
-            'last_interaction_type' => $customer->lastInteraction->type,
+            'birth_date' => Carbon::parse($customer->birth_date)->format('Y-m-d'),
+            'last_interaction_date' => $customer->lastInteraction ? $customer->lastInteraction->created_at->diffForHumans() : '-',
+            'last_interaction_type' => $customer->lastInteraction ? $customer->lastInteraction->type : '',
         ]);
-
-        //dd($customers);
-        
 
         return Inertia::render('Customers/Index', [
             'customers' => $customers,
             'search' => $request->get('search') ?? '',
             'filter' => $request->get('filter') ?? '',
+            'order' => $request->get('order') ?? '',
+            'dir' => $request->get('dir') ?? ''
         ]);
 
     }
@@ -54,7 +61,10 @@ class CustomerController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('Customers/Create',[
+            'users' => User::select('id','name')->get(),
+            'companies' => Company::select('id','name')->get(),            
+        ]);
     }
 
     /**
@@ -65,7 +75,17 @@ class CustomerController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validatedData = $request->validate([
+            'first_name' => 'required',
+            'last_name' => 'required',            
+            'birth_date' => 'required|date_format:Y-m-d',
+            'sales_rep_id' => 'required|integer',
+            'company_id' => 'required|integer'
+        ]);
+
+        Customer::create($validatedData);
+
+        return redirect()->route('customers.index');
     }
 
     /**
@@ -87,7 +107,11 @@ class CustomerController extends Controller
      */
     public function edit(Customer $customer)
     {
-        //
+        return Inertia::render('Customers/Edit',[
+            'customer' => $customer,
+            'users' => User::select('id','name')->get(),
+            'companies' => Company::select('id','name')->get(),            
+        ]);
     }
 
     /**
@@ -99,7 +123,17 @@ class CustomerController extends Controller
      */
     public function update(Request $request, Customer $customer)
     {
-        //
+        $validatedData = $request->validate([
+            'first_name' => 'required',
+            'last_name' => 'required',            
+            'birth_date' => 'required|date_format:Y-m-d',
+            'sales_rep_id' => 'required|integer',
+            'company_id' => 'required|integer'
+        ]);
+
+        $customer->update($validatedData);
+
+        return redirect()->route('customers.index');
     }
 
     /**
