@@ -30,7 +30,7 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // customers
-Route::resource('customers',CustomerController::class);
+Route::resource('customers',CustomerController::class)->middleware(['auth', 'verified']);
 
 
 require __DIR__.'/auth.php';
