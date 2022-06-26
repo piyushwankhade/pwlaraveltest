@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -31,6 +32,15 @@ Route::get('/dashboard', function () {
 
 // customers
 Route::resource('customers',CustomerController::class)->middleware(['auth', 'verified']);
+
+
+Route::middleware(['auth', 'verified'])->group(function() {
+    
+    Route::get('transactions/banknamesum',[TransactionController::class,'banknamesum']);
+    Route::get('transactions/mosttransfers',[TransactionController::class,'mosttransfers']);
+    Route::get('transactions/mostamount',[TransactionController::class,'mostamount']);
+
+});
 
 
 require __DIR__.'/auth.php';
